@@ -18,7 +18,10 @@ async function supabaseRequest(path, options = {}) {
   // Yeni sb_publishable_* anahtarları JWT değildir. Authorization başlığına
   // yalnızca Supabase Auth tarafından döndürülen kullanıcı JWT'si yazılmalıdır.
   if (authenticated && accessToken) headers.Authorization = `Bearer ${accessToken}`;
-  const requestUrl = new URL(path, `${config.supabaseUrl.replace(/\/$/, '')}/`).toString();
+  // URL constructor bazı iOS tarayıcılarında geçerli Supabase adreslerinde dahi
+  // "expected pattern" DOMException üretebildiği için doğrulanmış taban adresi
+  // doğrudan güvenli API yolu ile birleştiriyoruz.
+  const requestUrl = `${config.supabaseUrl.replace(/\/+$/, '')}${path}`;
   let response;
   try {
     response = await fetch(requestUrl, {
@@ -64,6 +67,7 @@ function renderTweets() {
   }).join('');
   $('#emptyState').hidden = tweets.length > 0;
   $('#tweetCount').textContent = tweets.length;
+  $('#publicTweetCount').textContent = tweets.length;
   $('#manageTotal').textContent = `${tweets.length} mesaj`;
   $('#clearAll').disabled = tweets.length === 0;
   $('#manageItems').innerHTML = tweets.map((tweet, index) => `<div class="manage-item"><b>${String(index + 1).padStart(2, '0')}</b><p>${escapeHtml(tweet.text)}</p><button class="delete-btn" data-delete="${tweet.id}" aria-label="Gönderiyi sil">Sil</button></div>`).join('');
@@ -127,6 +131,10 @@ $('#tweetForm').addEventListener('submit', async event => {
   const draft = { text: $('#tweetText').value.trim(), mentions: $('#mentions').value.trim(), hashtags: $('#hashtags').value.trim(), reply_url: $('#replyUrl').value.trim() };
   const displayDraft = normaliseTweet(draft);
   if (fullText(displayDraft).length > 280) { $('#editorError').textContent = `Toplam metin ${fullText(displayDraft).length} karakter. X sınırı için 280 veya altına indirin.`; return; }
+  if (draft.reply_url && !/^https:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/[^\s/]+\/status\/\d+(?:[/?].*)?$/i.test(draft.reply_url)) {
+    $('#editorError').textContent = 'Yanıt bağlantısı geçerli bir X gönderi adresi olmalıdır.';
+    return;
+  }
   const button = event.submitter;
   button.disabled = true;
   $('#editorError').textContent = '';
