@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f7fb" />
+    <title>Paylaş — Hazır gönderiler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="Paylaş ana sayfa">
+        <span class="brand-mark">P</span>
+        <span>paylaş<span class="brand-dot">.</span></span>
+      </a>
+      <nav>
+        <a class="nav-link active" href="#kampanya">Kampanya</a>
+        <button class="admin-link" id="adminOpen" type="button" aria-label="Yönetici panelini aç">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.96 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H3v-4h.08A1.7 1.7 0 0 0 4.6 8.96a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V3h4v.08A1.7 1.7 0 0 0 15.04 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9 1.7 1.7 0 0 0 21 10v4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+          Yönetici
+        </button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="kampanya">
+        <div class="hero-copy">
+          <div class="eyebrow"><span></span> Birlikte sesimizi duyuralım</div>
+          <h1>Bir paylaşım,<br /><em>binlerce etki.</em></h1>
+          <p>Hazır gönderilerden birini seç, X hesabında paylaş ve kampanyamıza güç kat.</p>
+          <a class="primary-button hero-button" href="#gonderiler">Gönderileri keşfet <span>↓</span></a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+          <div class="float-card card-a"><span class="avatar coral">M</span><div><b>Mesajın hazır!</b><small>Paylaşmak için dokun</small></div><span class="heart">♥</span></div>
+          <div class="float-card card-b"><div class="x-badge">𝕏</div><div><small>TOPLAM DESTEK</small><b><span id="heroCount">2.847</span> paylaşım</b></div></div>
+          <div class="float-card card-c"><span>“</span><p>Değişim, birlikte<br />ses verince başlar.</p></div>
+          <div class="spark spark-one">✦</div><div class="spark spark-two">✦</div>
+        </div>
+      </section>
+
+      <section class="tweets-section" id="gonderiler">
+        <div class="section-heading">
+          <div><span class="step-label">02 / HAZIR GÖNDERİLER</span><h2>Bir mesaj seç,<br /><em>sesimize katıl.</em></h2></div>
+          <p>Aşağıdaki mesajlardan sana en yakın olanı seç. Tek tıkla X'te paylaşmaya hazır.</p>
+        </div>
+        <div class="tweet-grid" id="tweetGrid" aria-live="polite"></div>
+        <div class="empty-state" id="emptyState" hidden><span>✎</span><h3>Henüz gönderi yok</h3><p>Yönetici panelinden ilk hazır gönderiyi ekleyin.</p></div>
+      </section>
+
+      <section class="how-section">
+        <span class="step-label">NASIL ÇALIŞIR?</span>
+        <h2>Üç adımda <em>etki yarat.</em></h2>
+        <div class="steps">
+          <article><span>01</span><div class="step-icon">⌁</div><h3>Mesajını seç</h3><p>Seni en iyi ifade eden hazır gönderiyi bul.</p></article>
+          <article><span>02</span><div class="step-icon">↗</div><h3>X'te aç</h3><p>Paylaş butonuna bas; mesajın otomatik hazırlansın.</p></article>
+          <article><span>03</span><div class="step-icon">♥</div><h3>Sesimize katıl</h3><p>X'te son kez kontrol et ve kampanyaya destek ol.</p></article>
+        </div>
+      </section>
+    </main>
+
+    <footer><a class="brand" href="#"><span class="brand-mark">P</span><span>paylaş<span class="brand-dot">.</span></span></a><p>Birlikte daha güçlüyüz.</p><small>© 2026 Paylaş</small></footer>
+
+    <div class="modal-backdrop" id="loginModal" hidden>
+      <section class="modal login-card" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+        <button class="close" data-close="loginModal" aria-label="Kapat">×</button>
+        <span class="modal-icon">↗</span><span class="step-label">YÖNETİCİ GİRİŞİ</span>
+        <h2 id="loginTitle">Tekrar hoş geldin.</h2><p>Supabase yönetici hesabınızla giriş yapın.</p>
+        <form id="loginForm"><label>E-posta<input type="email" id="email" autocomplete="username" placeholder="yonetici@site.com" required /></label><label>Şifre<input type="password" id="password" autocomplete="current-password" placeholder="••••••••" required /></label><p class="form-error" id="loginError"></p><button class="primary-button" type="submit">Panele giriş yap →</button></form>
+        <small>Yalnızca veritabanında yönetici olarak tanımlanan hesaplar giriş yapabilir.</small>
+      </section>
+    </div>
+
+    <div class="admin-panel" id="adminPanel" hidden>
+      <header><div class="brand"><span class="brand-mark">P</span><span>paylaş<span class="brand-dot">.</span></span><i>Yönetim</i></div><button class="admin-link" id="adminClose">← Siteye dön</button></header>
+      <main class="admin-main">
+        <div class="admin-heading"><div><span class="step-label">KONTROL PANELİ</span><h1>Gönderileri yönet</h1><p>Yeni mesajlar hazırla, ortak etiketleri belirle.</p></div><div class="stat"><small>YAYINDA</small><b id="tweetCount">0</b><span>gönderi</span></div></div>
+        <div class="admin-grid">
+          <form class="editor-card" id="tweetForm">
+            <div class="editor-title"><span>✦</span><div><h2>Yeni gönderi</h2><p>Mesajını hazırla ve listeye ekle.</p></div></div>
+            <label>Gönderi metni <textarea id="tweetText" maxlength="240" rows="6" placeholder="Paylaşılacak mesajı buraya yazın…" required></textarea><small class="char-count"><b id="editorCount">0</b> / 240</small></label>
+            <label>Etiketlenecek hesaplar <input id="mentions" placeholder="@kullanici @digerhesap" /><small>Hesapları boşlukla ayırabilirsiniz.</small></label>
+            <label>Hashtag'ler <input id="hashtags" placeholder="#BirlikteGüçlüyüz #Değişim" /><small>Tüm gönderilerin sonuna eklenir.</small></label>
+            <label>Yanıtlanacak gönderi <span class="optional">OPSİYONEL</span><input id="replyUrl" type="url" placeholder="https://x.com/kullanici/status/…" /><small>Boş bırakırsanız kullanıcı kendi profilinden paylaşır.</small></label>
+            <p class="form-error" id="editorError"></p><button class="primary-button" type="submit">Gönderiyi yayınla <span>→</span></button>
+          </form>
+          <section class="preview-column"><span class="step-label">CANLI ÖNİZLEME</span><div class="preview-phone"><div class="preview-user"><span class="avatar dark">S</span><div><b>Destekçi</b><small>@destekci · Şimdi</small></div><span>•••</span></div><p id="previewText">Gönderi metniniz burada görünecek…</p><div class="preview-icons">♡ <span>⇄</span> <span>⌁</span> <span>↗</span></div></div><div class="manage-list"><div class="manage-heading"><div><h3>Yayındaki gönderiler</h3><span id="manageTotal">0 mesaj</span></div><button class="clear-button" id="clearAll" type="button">Tümünü temizle</button></div><div id="manageItems"></div></div></section>
+        </div>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status">Gönderi yayınlandı <span>✓</span></div>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
