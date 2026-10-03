@@ -9,18 +9,26 @@ function isConfigured() {
 
 async function supabaseRequest(path, options = {}) {
   if (!isConfigured()) throw new Error('Supabase bağlantısı henüz yapılandırılmadı.');
+  const { authenticated = false, headers: extraHeaders = {}, ...fetchOptions } = options;
   const headers = {
     apikey: config.supabaseAnonKey,
     'Content-Type': 'application/json',
-    ...options.headers
+    ...extraHeaders
   };
   // Yeni sb_publishable_* anahtarları JWT değildir. Authorization başlığına
   // yalnızca Supabase Auth tarafından döndürülen kullanıcı JWT'si yazılmalıdır.
-  if (options.authenticated && accessToken) headers.Authorization = `Bearer ${accessToken}`;
-  const response = await fetch(`${config.supabaseUrl}${path}`, {
-    ...options,
+  if (authenticated && accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const requestUrl = new URL(path, `${config.supabaseUrl.replace(/\/$/, '')}/`).toString();
+  let response;
+  try {
+    response = await fetch(requestUrl, {
+    ...fetchOptions,
     headers
-  });
+    });
+  } catch (error) {
+    console.error('Supabase isteği başlatılamadı:', { requestUrl, error });
+    throw new Error('Supabase bağlantısı kurulamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.');
+  }
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.msg || error.message || error.error_description || 'İşlem tamamlanamadı.');
