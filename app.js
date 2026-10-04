@@ -2,6 +2,8 @@ const $ = selector => document.querySelector(selector);
 const config = window.PAYLAS_CONFIG || {};
 let tweets = [];
 let accessToken = '';
+let currentPhase = 0;
+let nextPhaseAt = Date.now() + 300000;
 
 function isConfigured() {
   return /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && Boolean(config.supabaseAnonKey);
@@ -45,7 +47,7 @@ function normaliseTweet(row) { return { ...row, replyUrl: row.reply_url || '' };
 async function loadTweets() {
   try {
     const rows = await supabaseRequest('/rest/v1/tweets?select=*&order=created_at.desc');
-    tweets = rows.map(normaliseTweet);
+    tweets = rows.map(normaliseTweet).sort((first, second) => phaseScore(first.id, currentPhase) - phaseScore(second.id, currentPhase));
     renderTweets();
   } catch (error) {
     tweets = [];
@@ -56,7 +58,7 @@ async function loadTweets() {
   }
 }
 
-function fullText(tweet) { return [tweet.text, tweet.mentions, tweet.hashtags].filter(Boolean).join('\n\n'); }
+function fullText(tweet) { return [tweet.text, tweet.hashtags, tweet.mentions].filter(Boolean).join(' '); }
 function escapeHtml(value = '') { return value.replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]); }
 function styledText(value) { return escapeHtml(value).replace(/(^|\s)([@#][\p{L}\p{N}_]+)/gu, '$1<span class="accent">$2</span>'); }
 
@@ -71,6 +73,41 @@ function renderTweets() {
   $('#manageTotal').textContent = `${tweets.length} mesaj`;
   $('#clearAll').disabled = tweets.length === 0;
   $('#manageItems').innerHTML = tweets.map((tweet, index) => `<div class="manage-item"><b>${String(index + 1).padStart(2, '0')}</b><p>${escapeHtml(tweet.text)}</p><button class="delete-btn" data-delete="${tweet.id}" aria-label="Gönderiyi sil">Sil</button></div>`).join('');
+  renderMentionSuggestions();
+}
+
+function phaseScore(id, phase) {
+  return [...`${id}:${phase}`].reduce((score, character) => ((score * 31) + character.charCodeAt(0)) >>> 0, 2166136261);
+}
+
+function shuffleForPhase() {
+  tweets.sort((first, second) => phaseScore(first.id, currentPhase) - phaseScore(second.id, currentPhase));
+  renderTweets();
+  $('#tweetGrid').classList.remove('phase-shuffle');
+  void $('#tweetGrid').offsetWidth;
+  $('#tweetGrid').classList.add('phase-shuffle');
+  $('#phaseNotice').classList.add('show');
+  setTimeout(() => $('#phaseNotice').classList.remove('show'), 2600);
+}
+
+function updateCountdown() {
+  const now = Date.now();
+  const remaining = Math.max(0, nextPhaseAt - now);
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  $('#countdown').textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  if (remaining === 0) {
+    currentPhase += 1;
+    nextPhaseAt = now + 300000;
+    shuffleForPhase();
+  }
+}
+
+function renderMentionSuggestions() {
+  const mentions = [...new Set(tweets.flatMap(tweet => (tweet.mentions.match(/@[\p{L}\p{N}_]+/gu) || [])))];
+  $('#mentionSuggestions').innerHTML = mentions.length
+    ? `<small>Önceden eklenenler:</small> ${mentions.map(mention => `<button type="button" data-mention="${escapeHtml(mention)}">${escapeHtml(mention)}</button>`).join('<span>,</span>')}`
+    : '';
 }
 
 function shareTweet(tweet) {
@@ -122,7 +159,7 @@ $('#adminClose').addEventListener('click', () => { accessToken = ''; $('#adminPa
 function updatePreview() {
   const draft = { text: $('#tweetText').value || 'Gönderi metniniz burada görünecek…', mentions: $('#mentions').value, hashtags: $('#hashtags').value };
   $('#previewText').innerHTML = styledText(fullText(draft));
-  $('#editorCount').textContent = $('#tweetText').value.length;
+  $('#editorCount').textContent = fullText(draft).length;
 }
 ['tweetText', 'mentions', 'hashtags'].forEach(id => $(`#${id}`).addEventListener('input', updatePreview));
 
@@ -164,3 +201,5 @@ function showToast(message) {
 
 renderTweets();
 loadTweets();
+updateCountdown();
+setInterval(updateCountdown, 1000);

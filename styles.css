@@ -27,6 +27,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .page-heading h1 { margin: 0 0 8px; font-size: clamp(30px, 5vw, 48px); letter-spacing: -.04em; }
 .page-heading p { color: var(--muted); margin: 0; font-size: 16px; }
 .count-pill { flex: none; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 9px 14px; color: var(--muted); font-size: 13px; }
+.phase-timer { flex: none; min-width: 112px; border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 10px 15px; text-align: center; }
+.phase-timer small { display: block; color: var(--muted); font-size: 9px; letter-spacing: .12em; }
+.phase-timer b { display: block; margin-top: 3px; font-size: 20px; font-variant-numeric: tabular-nums; }
 .tweet-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .tweet-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; transition: transform .2s, border-color .2s; }
 .tweet-card:hover { transform: translateY(-2px); border-color: #454e5a; }
@@ -67,6 +70,11 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px
 .editor-title h2, .editor-title p { margin: 0; }
 .editor-title p { margin-top: 5px; color: var(--muted); font-size: 13px; }
 .editor-card label small { display: block; margin-top: 6px; color: var(--muted); font-weight: 400; }
+.mention-suggestions { margin-top: 9px; color: var(--muted); font-size: 12px; line-height: 1.9; }
+.mention-suggestions small { margin-right: 5px; }
+.mention-suggestions button { border: 0; padding: 0 3px; background: transparent; color: var(--accent); font-weight: 700; }
+.mention-suggestions button:hover { text-decoration: underline; }
+.mention-suggestions span { color: #555d68; }
 .char-count { text-align: right; }
 .optional { float: right; color: var(--muted); font-size: 10px; }
 .preview-label { display: block; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; margin: 0 0 10px; }
@@ -86,11 +94,19 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px
 .toast { position: fixed; z-index: 80; left: 50%; bottom: 24px; transform: translate(-50%, 120px); padding: 13px 18px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); transition: transform .25s; }
 .toast.show { transform: translate(-50%, 0); }
 .toast span { color: var(--success); }
+.phase-notice { position: fixed; z-index: 90; top: 88px; left: 50%; transform: translate(-50%, -35px); opacity: 0; pointer-events: none; border: 1px solid #66522b; border-radius: 12px; background: #201b10; padding: 12px 18px; box-shadow: 0 16px 50px #0009; transition: .35s; text-align: center; }
+.phase-notice.show { transform: translate(-50%, 0); opacity: 1; }
+.phase-notice b, .phase-notice span { display: block; }
+.phase-notice b { color: #ffd77d; }
+.phase-notice span { margin-top: 3px; color: var(--muted); font-size: 11px; }
+.phase-shuffle .tweet-card { animation: phase-in .55s ease both; }
+.phase-shuffle .tweet-card:nth-child(2n) { animation-delay: .08s; }
+@keyframes phase-in { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
 @media (max-width: 760px) {
   .main-shell, .admin-main { width: min(100% - 28px, 600px); padding-top: 34px; }
   .page-heading { align-items: start; }
   .tweet-grid, .admin-grid { grid-template-columns: 1fr; }
-  .count-pill, .stat { display: none; }
+  .stat { display: none; }
   .card-top { min-height: 190px; }
   .admin-panel > header .brand { font-size: 0; }
   .editor-card, .preview-phone, .manage-list { padding: 20px; }

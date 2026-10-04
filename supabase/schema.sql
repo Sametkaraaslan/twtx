@@ -3,14 +3,18 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.tweets (
   id uuid primary key default gen_random_uuid(),
-  text varchar(240) not null check (char_length(text) between 1 and 240),
+  text text not null check (char_length(text) >= 1),
   mentions text not null default '',
   hashtags text not null default '',
   reply_url text not null default '',
-  created_at timestamptz not null default now(),
-  constraint complete_tweet_length check (
-    char_length(concat_ws(E'\n\n', text, nullif(mentions, ''), nullif(hashtags, ''))) <= 280
-  )
+  created_at timestamptz not null default now()
+);
+
+-- Önceki 240 karakterlik kurulumu da güvenle günceller.
+alter table public.tweets alter column text type text;
+alter table public.tweets drop constraint if exists complete_tweet_length;
+alter table public.tweets add constraint complete_tweet_length check (
+  char_length(concat_ws(' ', text, nullif(hashtags, ''), nullif(mentions, ''))) <= 280
 );
 
 create table if not exists public.app_admins (
