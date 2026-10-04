@@ -2,9 +2,9 @@ const $ = selector => document.querySelector(selector);
 const config = window.PAYLAS_CONFIG || {};
 let tweets = [];
 let accessToken = '';
-let currentPhase = 0;
-let nextPhaseAt = Date.now() + 300000;
+let currentPhase = Math.floor(Date.now() / 300000);
 let editingId = '';
+let campaignSettings = { hashtags: '', replyUrl: '' };
 
 function isConfigured() {
   return /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && Boolean(config.supabaseAnonKey);
@@ -43,12 +43,20 @@ async function supabaseRequest(path, options = {}) {
   return response.json();
 }
 
-function normaliseTweet(row) { return { ...row, replyUrl: row.reply_url || '' }; }
+function normaliseTweet(row) { return { ...row }; }
+
+async function loadSettings() {
+  const rows = await supabaseRequest('/rest/v1/campaign_settings?id=eq.1&select=*');
+  const settings = rows[0] || {};
+  campaignSettings = { hashtags: settings.hashtags || '', replyUrl: settings.reply_url || '' };
+  $('#globalHashtags').value = campaignSettings.hashtags;
+  $('#globalReplyUrl').value = campaignSettings.replyUrl;
+}
 
 async function loadTweets() {
   try {
     const rows = await supabaseRequest('/rest/v1/tweets?select=*&order=created_at.desc');
-    tweets = rows.map(normaliseTweet).sort((first, second) => phaseScore(first.id, currentPhase) - phaseScore(second.id, currentPhase));
+    tweets = shuffleTweets(rows.map(normaliseTweet), currentPhase);
     renderTweets();
   } catch (error) {
     tweets = [];
@@ -59,14 +67,19 @@ async function loadTweets() {
   }
 }
 
-function fullText(tweet) { return [tweet.text, tweet.hashtags, tweet.mentions].filter(Boolean).join(' '); }
+function fullText(tweet) { return [tweet.text, campaignSettings.hashtags, tweet.mentions].filter(Boolean).join(' '); }
 function escapeHtml(value = '') { return value.replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]); }
 function styledText(value) { return escapeHtml(value).replace(/(^|\s)([@#][\p{L}\p{N}_]+)/gu, '$1<span class="accent">$2</span>'); }
 
 function renderTweets() {
+  const usedLabels = new Set();
   $('#tweetGrid').innerHTML = tweets.map((tweet, index) => {
     const composed = fullText(tweet);
-    return `<article class="tweet-card"><div class="card-top"><span class="tweet-number">MESAJ ${String(index + 1).padStart(2, '0')}</span><p class="tweet-text">${styledText(composed)}</p><div class="tweet-meta"><span>${composed.length} karakter</span>${tweet.replyUrl ? '<span>↩ Yanıt</span>' : '<span>Yeni gönderi</span>'}</div></div><button class="share-button" data-share="${tweet.id}">X'te paylaş <span>↗</span></button></article>`;
+    let label = randomLabel(tweet.id);
+    let attempts = 0;
+    while (usedLabels.has(label) && attempts < 900) { label = label === 999 ? 100 : label + 1; attempts += 1; }
+    usedLabels.add(label);
+    return `<article class="tweet-card"><div class="card-top"><span class="tweet-number">#${label}</span><p class="tweet-text">${styledText(composed)}</p><div class="tweet-meta"><span>${composed.length} karakter</span>${campaignSettings.replyUrl ? '<span>↩ Yanıt</span>' : '<span>Yeni gönderi</span>'}</div></div><button class="share-button" data-share="${tweet.id}">X'te paylaş <span>↗</span></button></article>`;
   }).join('');
   $('#emptyState').hidden = tweets.length > 0;
   $('#tweetCount').textContent = tweets.length;
@@ -76,12 +89,25 @@ function renderTweets() {
   renderMentionSuggestions();
 }
 
-function phaseScore(id, phase) {
-  return [...`${id}:${phase}`].reduce((score, character) => ((score * 31) + character.charCodeAt(0)) >>> 0, 2166136261);
+function hashString(value) {
+  return [...String(value)].reduce((score, character) => Math.imul(score ^ character.charCodeAt(0), 16777619) >>> 0, 2166136261);
+}
+
+function randomLabel(id) { return 100 + (hashString(id) % 900); }
+
+function shuffleTweets(items, phase) {
+  const result = [...items].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  let seed = hashString(`phase-${phase}`);
+  const random = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296; };
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(random() * (index + 1));
+    [result[index], result[target]] = [result[target], result[index]];
+  }
+  return result;
 }
 
 function shuffleForPhase() {
-  tweets.sort((first, second) => phaseScore(first.id, currentPhase) - phaseScore(second.id, currentPhase));
+  tweets = shuffleTweets(tweets, currentPhase);
   renderTweets();
   $('#tweetGrid').classList.remove('phase-shuffle');
   void $('#tweetGrid').offsetWidth;
@@ -92,13 +118,13 @@ function shuffleForPhase() {
 
 function updateCountdown() {
   const now = Date.now();
-  const remaining = Math.max(0, nextPhaseAt - now);
+  const phase = Math.floor(now / 300000);
+  const remaining = ((phase + 1) * 300000) - now;
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
   $('#countdown').textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  if (remaining === 0) {
-    currentPhase += 1;
-    nextPhaseAt = now + 300000;
+  if (phase !== currentPhase) {
+    currentPhase = phase;
     shuffleForPhase();
   }
 }
@@ -112,7 +138,7 @@ function renderMentionSuggestions() {
 
 function shareTweet(tweet) {
   let url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText(tweet))}`;
-  const statusId = tweet.replyUrl.match(/status\/(\d+)/)?.[1];
+  const statusId = campaignSettings.replyUrl.match(/status\/(\d+)/)?.[1];
   if (statusId) url += `&in_reply_to=${statusId}`;
   window.open(url, '_blank', 'noopener,noreferrer');
 }
@@ -170,11 +196,11 @@ $('#loginForm').addEventListener('submit', async event => {
 $('#adminClose').addEventListener('click', () => { accessToken = ''; $('#adminPanel').hidden = true; document.body.style.overflow = ''; });
 
 function updatePreview() {
-  const draft = { text: $('#tweetText').value || 'Gönderi metniniz burada görünecek…', mentions: $('#mentions').value, hashtags: $('#hashtags').value };
+  const draft = { text: $('#tweetText').value || 'Gönderi metniniz burada görünecek…', mentions: $('#mentions').value };
   $('#previewText').innerHTML = styledText(fullText(draft));
   $('#editorCount').textContent = fullText(draft).length;
 }
-['tweetText', 'mentions', 'hashtags'].forEach(id => $(`#${id}`).addEventListener('input', updatePreview));
+['tweetText', 'mentions'].forEach(id => $(`#${id}`).addEventListener('input', updatePreview));
 
 function startEditing(id) {
   const tweet = tweets.find(item => item.id === id);
@@ -182,8 +208,6 @@ function startEditing(id) {
   editingId = id;
   $('#tweetText').value = tweet.text;
   $('#mentions').value = tweet.mentions;
-  $('#hashtags').value = tweet.hashtags;
-  $('#replyUrl').value = tweet.replyUrl;
   $('#editorTitle').textContent = 'Gönderiyi düzenle';
   $('#submitLabel').textContent = 'Değişiklikleri kaydet';
   $('#cancelEdit').hidden = false;
@@ -194,7 +218,7 @@ function startEditing(id) {
 
 function resetEditor() {
   editingId = '';
-  ['tweetText', 'mentions', 'hashtags', 'replyUrl'].forEach(id => { $(`#${id}`).value = ''; });
+  ['tweetText', 'mentions'].forEach(id => { $(`#${id}`).value = ''; });
   $('#editorTitle').textContent = 'Yeni gönderi';
   $('#submitLabel').textContent = 'Gönderiyi yayınla';
   $('#cancelEdit').hidden = true;
@@ -206,11 +230,7 @@ $('#cancelEdit').addEventListener('click', resetEditor);
 
 $('#tweetForm').addEventListener('submit', async event => {
   event.preventDefault();
-  const draft = { text: $('#tweetText').value.trim(), mentions: $('#mentions').value.trim(), hashtags: $('#hashtags').value.trim(), reply_url: $('#replyUrl').value.trim() };
-  if (draft.reply_url && !/^https:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/[^\s/]+\/status\/\d+(?:[/?].*)?$/i.test(draft.reply_url)) {
-    $('#editorError').textContent = 'Yanıt bağlantısı geçerli bir X gönderi adresi olmalıdır.';
-    return;
-  }
+  const draft = { text: $('#tweetText').value.trim(), mentions: $('#mentions').value.trim(), hashtags: '', reply_url: '' };
   const button = event.submitter;
   button.disabled = true;
   $('#editorError').textContent = '';
@@ -234,6 +254,40 @@ $('#tweetForm').addEventListener('submit', async event => {
   button.disabled = false;
 });
 
+$('#settingsForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const hashtags = $('#globalHashtags').value.trim();
+  const replyUrl = $('#globalReplyUrl').value.trim();
+  if (replyUrl && !/^https:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/[^\s/]+\/status\/\d+(?:[/?].*)?$/i.test(replyUrl)) {
+    $('#settingsError').textContent = 'Geçerli bir X gönderi adresi girin.';
+    return;
+  }
+  event.submitter.disabled = true;
+  $('#settingsError').textContent = '';
+  try {
+    await supabaseRequest('/rest/v1/campaign_settings?on_conflict=id', { method: 'POST', authenticated: true, headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 1, hashtags, reply_url: replyUrl }) });
+    campaignSettings = { hashtags, replyUrl };
+    renderTweets(); updatePreview(); showToast('Genel ayarlar güncellendi');
+  } catch (error) { $('#settingsError').textContent = error.message; }
+  finally { event.submitter.disabled = false; }
+});
+
+$('#bulkForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const lines = $('#bulkTweets').value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  if (!lines.length) { $('#bulkError').textContent = 'En az bir gönderi yazın.'; return; }
+  const mentions = $('#bulkMentions').value.trim();
+  const drafts = lines.map(text => ({ text, mentions, hashtags: '', reply_url: '' }));
+  event.submitter.disabled = true; $('#bulkError').textContent = '';
+  try {
+    const savedRows = await supabaseRequest('/rest/v1/tweets', { method: 'POST', authenticated: true, headers: { Prefer: 'return=representation' }, body: JSON.stringify(drafts) });
+    tweets = shuffleTweets([...savedRows.map(normaliseTweet), ...tweets], currentPhase);
+    $('#bulkTweets').value = ''; $('#bulkMentions').value = '';
+    renderTweets(); showToast(`${savedRows.length} gönderi yayınlandı`);
+  } catch (error) { $('#bulkError').textContent = error.message; }
+  finally { event.submitter.disabled = false; }
+});
+
 $('#clearAll').addEventListener('click', async () => {
   if (!tweets.length || !confirm(`${tweets.length} gönderinin tamamı veritabanından kalıcı olarak silinecek. Devam edilsin mi?`)) return;
   const button = $('#clearAll');
@@ -251,7 +305,24 @@ function showToast(message) {
   setTimeout(() => $('#toast').classList.remove('show'), 2200);
 }
 
+async function initialiseApp() {
+  try {
+    await Promise.all([loadSettings(), loadTweets()]);
+    renderTweets();
+  } catch (error) {
+    console.error('Başlangıç verileri yüklenemedi:', error);
+    if (!tweets.length) {
+      $('#emptyState').hidden = false;
+      $('#emptyState').querySelector('h3').textContent = 'Veriler yüklenemedi';
+      $('#emptyState').querySelector('p').textContent = error.message;
+    }
+  } finally {
+    $('#loadingScreen').classList.add('hidden');
+    setTimeout(() => $('#loadingScreen').remove(), 450);
+  }
+}
+
 renderTweets();
-loadTweets();
+initialiseApp();
 updateCountdown();
 setInterval(updateCountdown, 1000);

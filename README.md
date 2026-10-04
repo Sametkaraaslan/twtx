@@ -5,7 +5,7 @@ X için hazır gönderiler sunan, verileri Supabase üzerinden tüm ziyaretçile
 ## Supabase kurulumu
 
 1. Supabase'de yeni bir proje oluşturun.
-2. `supabase/schema.sql` dosyasını projenin **SQL Editor** bölümünde çalıştırın. Mevcut kurulumlarda ayrıca `supabase/migrations/20261003_expand_tweet_text.sql`, `supabase/migrations/20261004_allow_tweet_updates.sql` ve son olarak `supabase/migrations/20261004_remove_tweet_length_limit.sql` dosyalarını sırasıyla çalıştırın.
+2. `supabase/schema.sql` dosyasını projenin **SQL Editor** bölümünde çalıştırın. Mevcut kurulumlarda ayrıca `supabase/migrations/20261003_expand_tweet_text.sql`, `supabase/migrations/20261004_allow_tweet_updates.sql` ve son olarak `supabase/migrations/20261004_remove_tweet_length_limit.sql` ve `supabase/migrations/20261004_add_campaign_settings.sql` dosyalarını sırasıyla çalıştırın.
 3. **Authentication > Users** bölümünde e-posta/şifre ile bir yönetici oluşturun.
 4. Oluşan kullanıcının UUID değerini SQL Editor'da yönetici tablosuna ekleyin:
    ```sql
