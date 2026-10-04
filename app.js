@@ -4,6 +4,7 @@ let tweets = [];
 let accessToken = '';
 let currentPhase = 0;
 let nextPhaseAt = Date.now() + 300000;
+let editingId = '';
 
 function isConfigured() {
   return /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && Boolean(config.supabaseAnonKey);
@@ -69,10 +70,9 @@ function renderTweets() {
   }).join('');
   $('#emptyState').hidden = tweets.length > 0;
   $('#tweetCount').textContent = tweets.length;
-  $('#publicTweetCount').textContent = tweets.length;
   $('#manageTotal').textContent = `${tweets.length} mesaj`;
   $('#clearAll').disabled = tweets.length === 0;
-  $('#manageItems').innerHTML = tweets.map((tweet, index) => `<div class="manage-item"><b>${String(index + 1).padStart(2, '0')}</b><p>${escapeHtml(tweet.text)}</p><button class="delete-btn" data-delete="${tweet.id}" aria-label="Gönderiyi sil">Sil</button></div>`).join('');
+  $('#manageItems').innerHTML = tweets.map((tweet, index) => `<div class="manage-item"><b>${String(index + 1).padStart(2, '0')}</b><p>${escapeHtml(tweet.text)}</p><button class="edit-btn" data-edit="${tweet.id}" type="button">Düzenle</button><button class="delete-btn" data-delete="${tweet.id}" type="button" aria-label="Gönderiyi sil">Sil</button></div>`).join('');
   renderMentionSuggestions();
 }
 
@@ -132,6 +132,19 @@ document.addEventListener('click', async event => {
   }
   const close = event.target.closest('[data-close]');
   if (close) $(`#${close.dataset.close}`).hidden = true;
+  const edit = event.target.closest('[data-edit]');
+  if (edit) startEditing(edit.dataset.edit);
+});
+
+$('#mentionSuggestions').addEventListener('click', event => {
+  const button = event.target.closest('button[data-mention]');
+  if (!button) return;
+  const input = $('#mentions');
+  const values = input.value.trim().split(/\s+/).filter(Boolean);
+  if (!values.includes(button.dataset.mention)) values.push(button.dataset.mention);
+  input.value = values.join(' ');
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.focus();
 });
 
 $('#adminOpen').addEventListener('click', () => $('#loginModal').hidden = false);
@@ -163,6 +176,34 @@ function updatePreview() {
 }
 ['tweetText', 'mentions', 'hashtags'].forEach(id => $(`#${id}`).addEventListener('input', updatePreview));
 
+function startEditing(id) {
+  const tweet = tweets.find(item => item.id === id);
+  if (!tweet) return;
+  editingId = id;
+  $('#tweetText').value = tweet.text;
+  $('#mentions').value = tweet.mentions;
+  $('#hashtags').value = tweet.hashtags;
+  $('#replyUrl').value = tweet.replyUrl;
+  $('#editorTitle').textContent = 'Gönderiyi düzenle';
+  $('#submitLabel').textContent = 'Değişiklikleri kaydet';
+  $('#cancelEdit').hidden = false;
+  updatePreview();
+  $('#tweetText').focus();
+  $('#tweetForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetEditor() {
+  editingId = '';
+  ['tweetText', 'mentions', 'hashtags', 'replyUrl'].forEach(id => { $(`#${id}`).value = ''; });
+  $('#editorTitle').textContent = 'Yeni gönderi';
+  $('#submitLabel').textContent = 'Gönderiyi yayınla';
+  $('#cancelEdit').hidden = true;
+  $('#editorError').textContent = '';
+  updatePreview();
+}
+
+$('#cancelEdit').addEventListener('click', resetEditor);
+
 $('#tweetForm').addEventListener('submit', async event => {
   event.preventDefault();
   const draft = { text: $('#tweetText').value.trim(), mentions: $('#mentions').value.trim(), hashtags: $('#hashtags').value.trim(), reply_url: $('#replyUrl').value.trim() };
@@ -175,11 +216,24 @@ $('#tweetForm').addEventListener('submit', async event => {
   const button = event.submitter;
   button.disabled = true;
   $('#editorError').textContent = '';
+  const wasEditing = Boolean(editingId);
+  const savedId = editingId;
+  let savedRows;
   try {
-    await supabaseRequest('/rest/v1/tweets', { method: 'POST', authenticated: true, headers: { Prefer: 'return=minimal' }, body: JSON.stringify(draft) });
-    event.target.reset(); updatePreview(); await loadTweets(); showToast('Gönderi yayınlandı');
-  } catch (error) { $('#editorError').textContent = error.message; }
-  finally { button.disabled = false; }
+    const path = wasEditing ? `/rest/v1/tweets?id=eq.${encodeURIComponent(savedId)}` : '/rest/v1/tweets';
+    savedRows = await supabaseRequest(path, { method: wasEditing ? 'PATCH' : 'POST', authenticated: true, headers: { Prefer: 'return=representation' }, body: JSON.stringify(draft) });
+  } catch (error) {
+    $('#editorError').textContent = error.message;
+    button.disabled = false;
+    return;
+  }
+  const saved = normaliseTweet(savedRows?.[0] || { ...draft, id: savedId || `new-${Date.now()}` });
+  if (wasEditing) tweets = tweets.map(tweet => tweet.id === savedId ? saved : tweet);
+  else tweets.unshift(saved);
+  resetEditor();
+  renderTweets();
+  showToast(wasEditing ? 'Gönderi güncellendi' : 'Gönderi yayınlandı');
+  button.disabled = false;
 });
 
 $('#clearAll').addEventListener('click', async () => {
@@ -194,7 +248,7 @@ $('#clearAll').addEventListener('click', async () => {
 });
 
 function showToast(message) {
-  $('#toast').firstChild.textContent = `${message} `;
+  $('#toastMessage').textContent = message;
   $('#toast').classList.add('show');
   setTimeout(() => $('#toast').classList.remove('show'), 2200);
 }
