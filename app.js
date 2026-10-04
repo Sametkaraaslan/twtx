@@ -4,7 +4,7 @@ let tweets = [];
 let accessToken = '';
 let currentPhase = Math.floor(Date.now() / 300000);
 let editingId = '';
-let campaignSettings = { hashtags: '', replyUrl: '', imageUrls: [] };
+let campaignSettings = { hashtags: '', replyUrl: '' };
 
 function isConfigured() {
   return /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && Boolean(config.supabaseAnonKey);
@@ -54,10 +54,9 @@ function normaliseTweet(row) { return { ...row }; }
 async function loadSettings() {
   const rows = await supabaseRequest('/rest/v1/campaign_settings?id=eq.1&select=*');
   const settings = rows[0] || {};
-  campaignSettings = { hashtags: settings.hashtags || '', replyUrl: settings.reply_url || '', imageUrls: settings.image_urls || [] };
+  campaignSettings = { hashtags: settings.hashtags || '', replyUrl: settings.reply_url || '' };
   $('#globalHashtags').value = campaignSettings.hashtags;
   $('#globalReplyUrl').value = campaignSettings.replyUrl;
-  renderImageGallery();
 }
 
 async function loadTweets() {
@@ -144,11 +143,7 @@ function renderMentionSuggestions() {
 }
 
 function shareTweet(tweet) {
-  const images = campaignSettings.imageUrls;
-  const selectedImage = images.length ? images[hashString(`${tweet.id}:${currentPhase}`) % images.length] : null;
-  const imageUrl = selectedImage ? (selectedImage.url || selectedImage) : '';
-  const shareText = [fullText(tweet), imageUrl].filter(Boolean).join(' ');
-  let url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+  let url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText(tweet))}`;
   const statusId = campaignSettings.replyUrl.match(/status\/(\d+)/)?.[1];
   if (statusId) url += `&in_reply_to=${statusId}`;
   window.open(url, '_blank', 'noopener,noreferrer');
@@ -173,21 +168,13 @@ document.addEventListener('click', async event => {
   if (edit) startEditing(edit.dataset.edit);
 });
 
-function renderImageGallery() {
-  $('#imageGallery').innerHTML = campaignSettings.imageUrls.map((image, index) => {
-    const url = image.url || image;
-    return `<figure><img src="${escapeHtml(url)}" alt="Kampanya görseli ${index + 1}" /><button type="button" data-remove-image="${index}" aria-label="Görseli kaldır">×</button></figure>`;
-  }).join('');
-  $('#imageCount').textContent = `${campaignSettings.imageUrls.length} görsel`;
-}
-
-async function saveCampaignSettings(hashtags, replyUrl, imageUrls = campaignSettings.imageUrls) {
+async function saveCampaignSettings(hashtags, replyUrl) {
   await supabaseRequest('/rest/v1/campaign_settings?on_conflict=id', {
     method: 'POST', authenticated: true,
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 1, hashtags, reply_url: replyUrl, image_urls: imageUrls })
+    body: JSON.stringify({ id: 1, hashtags, reply_url: replyUrl })
   });
-  campaignSettings = { hashtags, replyUrl, imageUrls };
+  campaignSettings = { hashtags, replyUrl };
 }
 
 $('#mentionSuggestions').addEventListener('click', event => {
@@ -297,41 +284,6 @@ $('#settingsForm').addEventListener('submit', async event => {
     renderTweets(); updatePreview(); showToast('Genel ayarlar güncellendi');
   } catch (error) { $('#settingsError').textContent = error.message; }
   finally { event.submitter.disabled = false; }
-});
-
-$('#imageUpload').addEventListener('change', async event => {
-  const files = [...event.target.files];
-  if (!files.length) return;
-  $('#imageError').textContent = '';
-  $('#imageUploadLabel').classList.add('busy');
-  try {
-    const uploaded = [];
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) throw new Error('Yalnızca görsel dosyaları yüklenebilir.');
-      if (file.size > 5 * 1024 * 1024) throw new Error('Her görsel en fazla 5 MB olabilir.');
-      const extension = file.name.split('.').pop().replace(/[^a-z0-9]/gi, '').toLowerCase() || 'jpg';
-      const unique = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      const path = `${unique}.${extension}`;
-      await supabaseRequest(`/storage/v1/object/campaign-media/${encodeURIComponent(path)}`, { method: 'POST', authenticated: true, headers: { 'Content-Type': file.type, 'x-upsert': 'false' }, body: file });
-      uploaded.push({ path, url: `${config.supabaseUrl}/storage/v1/object/public/campaign-media/${encodeURIComponent(path)}` });
-    }
-    await saveCampaignSettings($('#globalHashtags').value.trim(), $('#globalReplyUrl').value.trim(), [...campaignSettings.imageUrls, ...uploaded]);
-    renderImageGallery(); renderTweets(); showToast(`${uploaded.length} görsel yüklendi`);
-  } catch (error) { $('#imageError').textContent = error.message; }
-  finally { event.target.value = ''; $('#imageUploadLabel').classList.remove('busy'); }
-});
-
-$('#imageGallery').addEventListener('click', async event => {
-  const button = event.target.closest('[data-remove-image]');
-  if (!button) return;
-  const index = Number(button.dataset.removeImage);
-  const image = campaignSettings.imageUrls[index];
-  try {
-    if (image?.path) await supabaseRequest(`/storage/v1/object/campaign-media/${encodeURIComponent(image.path)}`, { method: 'DELETE', authenticated: true });
-    const imageUrls = campaignSettings.imageUrls.filter((_, itemIndex) => itemIndex !== index);
-    await saveCampaignSettings($('#globalHashtags').value.trim(), $('#globalReplyUrl').value.trim(), imageUrls);
-    renderImageGallery(); renderTweets(); showToast('Görsel kaldırıldı');
-  } catch (error) { $('#imageError').textContent = error.message; }
 });
 
 $('#bulkForm').addEventListener('submit', async event => {

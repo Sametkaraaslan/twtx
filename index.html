@@ -93,17 +93,6 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px
 .settings-card, .bulk-card { min-width: 0; border: 1px solid var(--line); border-radius: 16px; padding: 22px; margin-bottom: 18px; background: linear-gradient(145deg, rgba(139,124,255,.11), var(--panel) 55%); }
 .bulk-card { background: linear-gradient(145deg, rgba(56,216,180,.09), var(--panel) 55%); }
 .settings-card h3, .bulk-card h3 { margin: 4px 0 0; }
-.image-upload-heading { display: flex; justify-content: space-between; margin-top: 20px; font-size: 13px; }
-.image-upload-heading span { color: var(--muted); font-size: 11px; }
-.image-upload { border: 1px dashed #4a5260; border-radius: 10px; padding: 15px; text-align: center; background: rgba(255,255,255,.02); transition: .2s; }
-.image-upload:hover { border-color: var(--accent-2); background: rgba(139,124,255,.08); }
-.image-upload.busy { opacity: .55; pointer-events: none; }
-.image-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.image-upload span { display: block; color: #c8c1ff; font-weight: 800; }
-.image-gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
-.image-gallery figure { position: relative; margin: 0; aspect-ratio: 1; border-radius: 9px; overflow: hidden; border: 1px solid var(--line); }
-.image-gallery img { width: 100%; height: 100%; object-fit: cover; }
-.image-gallery button { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: rgba(0,0,0,.72); color: white; }
 .settings-button, .bulk-button { width: 100%; border: 0; border-radius: 9px; padding: 13px; color: white; font-weight: 800; background: linear-gradient(110deg, var(--accent-2), #6657db); }
 .bulk-button { background: linear-gradient(110deg, #159c81, var(--accent-3)); color: #06130f; }
 .preview-heading { margin-top: 26px; }
@@ -209,9 +198,6 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px
             <span class="preview-label">TÜM GÖNDERİLER İÇİN</span><h3>Genel paylaşım ayarları</h3>
             <label>Ortak hashtag<input id="globalHashtags" placeholder="#OrtakHashtag" /></label>
             <label>Yanıtlanacak gönderi <span class="optional">OPSİYONEL</span><input id="globalReplyUrl" inputmode="url" placeholder="https://x.com/kullanici/status/…" /></label>
-            <div class="image-upload-heading"><b>Paylaşım görselleri</b><span id="imageCount">0 görsel</span></div>
-            <label class="image-upload" id="imageUploadLabel"><input id="imageUpload" type="file" accept="image/*" multiple /><span>＋ Görsel yükle</span><small>Supabase Storage'da saklanır, gönderilere rastgele bağlantı olarak eklenir. En fazla 5 MB.</small></label>
-            <div class="image-gallery" id="imageGallery"></div><p class="form-error" id="imageError"></p>
             <p class="form-error" id="settingsError"></p><button class="settings-button" type="submit">Genel ayarları kaydet</button>
           </form>
           <form class="bulk-card" id="bulkForm">
