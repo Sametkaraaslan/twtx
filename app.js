@@ -66,7 +66,7 @@ function styledText(value) { return escapeHtml(value).replace(/(^|\s)([@#][\p{L}
 function renderTweets() {
   $('#tweetGrid').innerHTML = tweets.map((tweet, index) => {
     const composed = fullText(tweet);
-    return `<article class="tweet-card"><div class="card-top"><span class="tweet-number">MESAJ ${String(index + 1).padStart(2, '0')}</span><p class="tweet-text">${styledText(composed)}</p><div class="tweet-meta"><span>${composed.length} / 280 karakter</span>${tweet.replyUrl ? '<span>↩ Yanıt</span>' : '<span>Yeni gönderi</span>'}</div></div><button class="share-button" data-share="${tweet.id}">X'te paylaş <span>↗</span></button></article>`;
+    return `<article class="tweet-card"><div class="card-top"><span class="tweet-number">MESAJ ${String(index + 1).padStart(2, '0')}</span><p class="tweet-text">${styledText(composed)}</p><div class="tweet-meta"><span>${composed.length} karakter</span>${tweet.replyUrl ? '<span>↩ Yanıt</span>' : '<span>Yeni gönderi</span>'}</div></div><button class="share-button" data-share="${tweet.id}">X'te paylaş <span>↗</span></button></article>`;
   }).join('');
   $('#emptyState').hidden = tweets.length > 0;
   $('#tweetCount').textContent = tweets.length;
@@ -207,8 +207,6 @@ $('#cancelEdit').addEventListener('click', resetEditor);
 $('#tweetForm').addEventListener('submit', async event => {
   event.preventDefault();
   const draft = { text: $('#tweetText').value.trim(), mentions: $('#mentions').value.trim(), hashtags: $('#hashtags').value.trim(), reply_url: $('#replyUrl').value.trim() };
-  const displayDraft = normaliseTweet(draft);
-  if (fullText(displayDraft).length > 280) { $('#editorError').textContent = `Toplam metin ${fullText(displayDraft).length} karakter. X sınırı için 280 veya altına indirin.`; return; }
   if (draft.reply_url && !/^https:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/[^\s/]+\/status\/\d+(?:[/?].*)?$/i.test(draft.reply_url)) {
     $('#editorError').textContent = 'Yanıt bağlantısı geçerli bir X gönderi adresi olmalıdır.';
     return;
