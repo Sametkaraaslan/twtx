@@ -132,13 +132,6 @@ document.addEventListener('click', async event => {
   }
   const close = event.target.closest('[data-close]');
   if (close) $(`#${close.dataset.close}`).hidden = true;
-  const mention = event.target.closest('[data-mention]');
-  if (mention) {
-    const values = $('#mentions').value.trim().split(/\s+/).filter(Boolean);
-    if (!values.includes(mention.dataset.mention)) values.push(mention.dataset.mention);
-    $('#mentions').value = values.join(' ');
-    updatePreview();
-  }
 });
 
 $('#adminOpen').addEventListener('click', () => $('#loginModal').hidden = false);
