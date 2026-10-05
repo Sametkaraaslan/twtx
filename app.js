@@ -11,6 +11,7 @@ function loadSharedTweetIds() {
   catch { return new Set(); }
 }
 const sharedTweetIds = loadSharedTweetIds();
+const PHASE_EMOJIS = ['🧑‍🧑‍🧒‍🧒', '🧑‍🧒', '🧑‍🏫', '👨‍🏫', '📚', '♥️', '🏫', '📖', '🖌️', '💔', '❤️‍🩹'];
 
 function isConfigured() {
   return /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && Boolean(config.supabaseAnonKey);
@@ -79,7 +80,22 @@ async function loadTweets() {
   }
 }
 
-function fullText(tweet) { return [tweet.text, campaignSettings.hashtags, tweet.mentions].filter(Boolean).join(' '); }
+function emojiSuffix(tweet) {
+  const identity = tweet.id || tweet.text || 'preview';
+  const identitySeed = hashString(`${identity}:emoji`);
+  const phaseSeed = hashString(`${identity}:${currentPhase}`);
+  const firstIndex = (identitySeed + currentPhase) % PHASE_EMOJIS.length;
+  const count = (phaseSeed >>> 8) % 2 === 0 ? 1 : 2;
+  if (count === 1) return PHASE_EMOJIS[firstIndex];
+  const secondIndex = (firstIndex + 1 + ((phaseSeed >>> 16) % (PHASE_EMOJIS.length - 1))) % PHASE_EMOJIS.length;
+  return `${PHASE_EMOJIS[firstIndex]} ${PHASE_EMOJIS[secondIndex]}`;
+}
+
+function fullText(tweet) { return [tweet.text, campaignSettings.hashtags, tweet.mentions, emojiSuffix(tweet)].filter(Boolean).join(' '); }
+function shareKey(tweet) { return `${tweet.id}:${currentPhase}`; }
+function persistSharedTweetIds() {
+  try { localStorage.setItem('paylas_shared_tweets', JSON.stringify([...sharedTweetIds])); } catch { /* Depolama kapalıysa oturum belleği kullanılır. */ }
+}
 function escapeHtml(value = '') { return value.replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]); }
 function styledText(value) { return escapeHtml(value).replace(/(^|\s)([@#][\p{L}\p{N}_]+)/gu, '$1<span class="accent">$2</span>'); }
 
@@ -91,7 +107,7 @@ function renderTweets() {
     let attempts = 0;
     while (usedLabels.has(label) && attempts < 900) { label = label === 999 ? 100 : label + 1; attempts += 1; }
     usedLabels.add(label);
-    const shared = sharedTweetIds.has(String(tweet.id));
+    const shared = sharedTweetIds.has(shareKey(tweet));
     return `<article class="tweet-card${shared ? ' is-shared' : ''}"><div class="card-top"><span class="tweet-number">#${label}</span><p class="tweet-text">${styledText(composed)}</p><div class="tweet-meta"><span>${composed.length} karakter</span>${campaignSettings.replyUrl ? '<span>↩ Yanıt</span>' : '<span>Yeni gönderi</span>'}</div></div><button class="share-button" data-share="${tweet.id}" ${shared ? 'disabled' : ''}>${shared ? 'Paylaşıldı <span>✓</span>' : 'X\'te paylaş <span>↗</span>'}</button></article>`;
   }).join('');
   $('#emptyState').hidden = tweets.length > 0;
@@ -138,6 +154,8 @@ function updateCountdown() {
   $('#countdown').textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   if (phase !== currentPhase) {
     currentPhase = phase;
+    for (const key of sharedTweetIds) if (!key.endsWith(`:${currentPhase}`)) sharedTweetIds.delete(key);
+    persistSharedTweetIds();
     shuffleForPhase();
   }
 }
@@ -150,10 +168,14 @@ function renderMentionSuggestions() {
 }
 
 function shareTweet(tweet) {
+  if (!tweet || sharedTweetIds.has(shareKey(tweet))) return;
   let url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText(tweet))}`;
   const statusId = campaignSettings.replyUrl.match(/status\/(\d+)/)?.[1];
   if (statusId) url += `&in_reply_to=${statusId}`;
-  window.open(url, '_blank', 'noopener,noreferrer');
+  sharedTweetIds.add(shareKey(tweet));
+  persistSharedTweetIds();
+  renderTweets();
+  window.location.assign(url);
 }
 
 async function deleteTweet(id) {
