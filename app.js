@@ -150,14 +150,10 @@ function renderMentionSuggestions() {
 }
 
 function shareTweet(tweet) {
-  if (!tweet || sharedTweetIds.has(String(tweet.id))) return;
   let url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText(tweet))}`;
   const statusId = campaignSettings.replyUrl.match(/status\/(\d+)/)?.[1];
   if (statusId) url += `&in_reply_to=${statusId}`;
-  sharedTweetIds.add(String(tweet.id));
-  try { localStorage.setItem('paylas_shared_tweets', JSON.stringify([...sharedTweetIds])); } catch { /* Gizli modda yalnızca bu oturumda tutulur. */ }
-  renderTweets();
-  window.location.assign(url);
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 async function deleteTweet(id) {
