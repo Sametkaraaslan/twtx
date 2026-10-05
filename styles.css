@@ -52,6 +52,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .share-button { width: 100%; border: 0; border-top: 1px solid var(--line); background: linear-gradient(90deg, rgba(255,102,93,.12), rgba(139,124,255,.1)); color: var(--text); padding: 17px 24px; display: flex; justify-content: space-between; font-weight: 800; }
 .share-button:hover { background: linear-gradient(90deg, rgba(255,102,93,.22), rgba(139,124,255,.18)); }
 .share-button span { color: var(--accent); }
+.tweet-card.is-shared { border-color: rgba(56,216,180,.32); }
+.share-button:disabled { opacity: 1; cursor: default; color: #8ee7d1; background: rgba(56,216,180,.08); }
+.share-button:disabled span { color: var(--accent-3); }
 .empty-state { padding: 70px 20px; text-align: center; border: 1px dashed var(--line); border-radius: 16px; background: var(--panel); }
 .empty-state span { font-size: 30px; }
 .empty-state h3 { margin: 18px 0 7px; }

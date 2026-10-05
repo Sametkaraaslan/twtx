@@ -21,7 +21,7 @@ Anon kullanıcılar yalnızca gönderileri okuyabilir. Ekleme, tekil silme ve **
 python3 -m http.server 4173
 ```
 
-Ardından `http://localhost:4173` adresini açın. Yönetici paneline Supabase'de oluşturduğunuz hesabın e-posta ve şifresiyle giriş yapın. Yönetici tarafından eklenen veya silinen gönderiler veritabanına yansır ve sayfayı açan tüm kullanıcılar güncel listeyi görür.
+Ardından `http://localhost:4173` adresini açın. Yönetici girişi için doğrudan `/admin` yolunu kullanın (ör. `https://alan-adiniz.vercel.app/admin`). Yönetici paneline Supabase'de oluşturduğunuz hesabın e-posta ve şifresiyle giriş yapın. Yönetici tarafından eklenen veya silinen gönderiler veritabanına yansır ve sayfayı açan tüm kullanıcılar güncel listeyi görür.
 
 ## Vercel'e yayınlama
 

@@ -6,6 +6,12 @@ let currentPhase = Math.floor(Date.now() / 300000);
 let editingId = '';
 let campaignSettings = { hashtags: '', replyUrl: '' };
 
+function loadSharedTweetIds() {
+  try { return new Set(JSON.parse(localStorage.getItem('paylas_shared_tweets') || '[]').map(String)); }
+  catch { return new Set(); }
+}
+const sharedTweetIds = loadSharedTweetIds();
+
 function isConfigured() {
   return /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && Boolean(config.supabaseAnonKey);
 }
@@ -85,7 +91,8 @@ function renderTweets() {
     let attempts = 0;
     while (usedLabels.has(label) && attempts < 900) { label = label === 999 ? 100 : label + 1; attempts += 1; }
     usedLabels.add(label);
-    return `<article class="tweet-card"><div class="card-top"><span class="tweet-number">#${label}</span><p class="tweet-text">${styledText(composed)}</p><div class="tweet-meta"><span>${composed.length} karakter</span>${campaignSettings.replyUrl ? '<span>↩ Yanıt</span>' : '<span>Yeni gönderi</span>'}</div></div><button class="share-button" data-share="${tweet.id}">X'te paylaş <span>↗</span></button></article>`;
+    const shared = sharedTweetIds.has(String(tweet.id));
+    return `<article class="tweet-card${shared ? ' is-shared' : ''}"><div class="card-top"><span class="tweet-number">#${label}</span><p class="tweet-text">${styledText(composed)}</p><div class="tweet-meta"><span>${composed.length} karakter</span>${campaignSettings.replyUrl ? '<span>↩ Yanıt</span>' : '<span>Yeni gönderi</span>'}</div></div><button class="share-button" data-share="${tweet.id}" ${shared ? 'disabled' : ''}>${shared ? 'Paylaşıldı <span>✓</span>' : 'X\'te paylaş <span>↗</span>'}</button></article>`;
   }).join('');
   $('#emptyState').hidden = tweets.length > 0;
   $('#tweetCount').textContent = tweets.length;
@@ -188,7 +195,6 @@ $('#mentionSuggestions').addEventListener('click', event => {
   input.focus();
 });
 
-$('#adminOpen').addEventListener('click', () => $('#loginModal').hidden = false);
 $('#loginModal').addEventListener('click', event => { if (event.target === $('#loginModal')) $('#loginModal').hidden = true; });
 $('#loginForm').addEventListener('submit', async event => {
   event.preventDefault();
@@ -208,7 +214,7 @@ $('#loginForm').addEventListener('submit', async event => {
   } catch (error) { $('#loginError').textContent = error.message; }
   finally { button.disabled = false; }
 });
-$('#adminClose').addEventListener('click', () => { accessToken = ''; $('#adminPanel').hidden = true; document.body.style.overflow = ''; });
+$('#adminClose').addEventListener('click', () => { accessToken = ''; $('#adminPanel').hidden = true; document.body.style.overflow = ''; history.replaceState(null, '', '/'); });
 
 function updatePreview() {
   const draft = { text: $('#tweetText').value || 'Gönderi metniniz burada görünecek…', mentions: $('#mentions').value };
@@ -341,6 +347,7 @@ async function initialiseApp() {
 }
 
 renderTweets();
+if (window.location.pathname.replace(/\/+$/, '') === '/admin') $('#loginModal').hidden = false;
 initialiseApp();
 updateCountdown();
 setInterval(updateCountdown, 1000);
